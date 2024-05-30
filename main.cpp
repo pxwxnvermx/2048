@@ -21,21 +21,6 @@ Color ColorLerp(Color a, Color b, float amount) {
                  (u_char)lerped.w};
 }
 
-void merge_swap_cell(world_t &world, int x, int y, int dir_x = 0,
-                     int dir_y = 0) {
-  // Swap with next if next is -1
-  if (world[x][y] != -1 && world[x + dir_x][y + dir_y] == -1) {
-    world[x + dir_x][y + dir_y] = world[x][y];
-    world[x][y] = -1;
-  }
-
-  // Merge with next if next is equal
-  if (world[x][y] == world[x + dir_x][y + dir_y]) {
-    world[x + dir_x][y + dir_y]++;
-    world[x][y] = -1;
-  }
-}
-
 void spawn_cell(world_t &world) {
   for (size_t i = 0; i < BOARD_SIZE; i++) {
     for (size_t j = 0; j < BOARD_SIZE; j++) {
@@ -48,9 +33,9 @@ void spawn_cell(world_t &world) {
 }
 
 int main() {
-  SetConfigFlags(FLAG_VSYNC_HINT);
   InitWindow(SCREEN_W, SCREEN_H, "Just trying something");
   SetTraceLogLevel(LOG_ALL);
+  SetTargetFPS(60);
 
   // store exponents only
   world_t world = {
@@ -62,43 +47,104 @@ int main() {
     world[0][1] = 0;
   }
 
+  float acc = 0.0f;
+
   while (!WindowShouldClose()) {
+    const float delta = GetFrameTime();
+    acc += delta;
+
     if (IsKeyPressed(KEY_DOWN)) {
-      for (size_t i = 0; i < BOARD_SIZE - 1; i++) {
-        for (size_t j = 0; j < BOARD_SIZE; j++) {
+      for (int i = BOARD_SIZE - 1; i >= 0; i--) {
+        for (int j = 0; j < BOARD_SIZE; j++) {
           if (world[i][j] == -1)
             continue;
-          merge_swap_cell(world, i, j, 1, 0);
+
+          for (size_t k = i; k < BOARD_SIZE - 1; k++) {
+            if (world[k + 1][j] == -1) {
+              world[k + 1][j] = world[k][j];
+              world[k][j] = -1;
+            }
+            if (world[k][j] == world[k + 1][j]) {
+              world[k + 1][j]++;
+              world[k][j] = -1;
+            }
+          }
         }
       }
-      spawn_cell(world);
+
+      if (acc > 0.15f) {
+        spawn_cell(world);
+        acc = 0.0f;
+      }
     } else if (IsKeyPressed(KEY_UP)) {
-      for (size_t i = BOARD_SIZE - 1; i > 0; i--) {
-        for (size_t j = 0; j < BOARD_SIZE; j++) {
+      for (size_t i = 0; i < BOARD_SIZE; i++) {
+        for (int j = 0; j < BOARD_SIZE; j++) {
           if (world[i][j] == -1)
             continue;
-          merge_swap_cell(world, i, j, -1, 0);
+
+          for (int k = i; k > 0; k--) {
+            if (world[k - 1][j] == -1) {
+              world[k - 1][j] = world[k][j];
+              world[k][j] = -1;
+            }
+            if (world[k][j] == world[k - 1][j]) {
+              world[k - 1][j]++;
+              world[k][j] = -1;
+            }
+          }
         }
       }
-      spawn_cell(world);
+
+      if (acc > 0.15f) {
+        spawn_cell(world);
+        acc = 0.0f;
+      }
     } else if (IsKeyPressed(KEY_LEFT)) {
       for (size_t i = 0; i < BOARD_SIZE; i++) {
-        for (size_t j = BOARD_SIZE - 1; j > 0; j--) {
+        for (int j = 0; j < BOARD_SIZE; j++) {
           if (world[i][j] == -1)
             continue;
-          merge_swap_cell(world, i, j, 0, -1);
+
+          for (int k = j; k > 0; k--) {
+            if (world[i][k - 1] == -1) {
+              world[i][k - 1] = world[i][k];
+              world[i][k] = -1;
+            }
+            if (world[i][k] == world[i][k - 1]) {
+              world[i][k - 1]++;
+              world[i][k] = -1;
+            }
+          }
         }
       }
-      spawn_cell(world);
+
+      if (acc > 0.15f) {
+        spawn_cell(world);
+        acc = 0.0f;
+      }
     } else if (IsKeyPressed(KEY_RIGHT)) {
       for (size_t i = 0; i < BOARD_SIZE; i++) {
-        for (size_t j = 0; j < BOARD_SIZE - 1; j++) {
+        for (int j = BOARD_SIZE - 1; j > -1; j--) {
           if (world[i][j] == -1)
             continue;
-          merge_swap_cell(world, i, j, 0, 1);
+
+          for (size_t k = j; k < BOARD_SIZE - 1; k++) {
+            if (world[i][k + 1] == -1) {
+              world[i][k + 1] = world[i][k];
+              world[i][k] = -1;
+            }
+            if (world[i][k] == world[i][k + 1]) {
+              world[i][k + 1]++;
+              world[i][k] = -1;
+            }
+          }
         }
       }
-      spawn_cell(world);
+
+      if (acc > 0.15f) {
+        spawn_cell(world);
+        acc = 0.0f;
+      }
     }
 
     BeginDrawing();
