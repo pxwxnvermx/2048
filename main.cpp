@@ -11,6 +11,8 @@
 #define SCREEN_W 800
 #define SCREEN_H 800
 
+typedef std::array<std::array<int, BOARD_SIZE>, BOARD_SIZE> world_t;
+
 Color ColorLerp(Color a, Color b, float amount) {
   Quaternion lerped = QuaternionLerp(
       (Quaternion){(float)a.r, (float)a.g, (float)a.b, (float)a.a},
@@ -19,13 +21,39 @@ Color ColorLerp(Color a, Color b, float amount) {
                  (u_char)lerped.w};
 }
 
+void merge_swap_cell(world_t &world, int x, int y, int dir_x = 0,
+                     int dir_y = 0) {
+  // Swap with next if next is -1
+  if (world[x][y] != -1 && world[x + dir_x][y + dir_y] == -1) {
+    world[x + dir_x][y + dir_y] = world[x][y];
+    world[x][y] = -1;
+  }
+
+  // Merge with next if next is equal
+  if (world[x][y] == world[x + dir_x][y + dir_y]) {
+    world[x + dir_x][y + dir_y]++;
+    world[x][y] = -1;
+  }
+}
+
+void spawn_cell(world_t &world) {
+  for (size_t i = 0; i < BOARD_SIZE; i++) {
+    for (size_t j = 0; j < BOARD_SIZE; j++) {
+      if (world[i][j] == -1 && GetRandomValue(0, 1) == 1) {
+        world[i][j] = 0;
+        break;
+      }
+    }
+  }
+}
+
 int main() {
   SetConfigFlags(FLAG_VSYNC_HINT);
   InitWindow(SCREEN_W, SCREEN_H, "Just trying something");
   SetTraceLogLevel(LOG_ALL);
 
   // store exponents only
-  std::array<std::array<int, BOARD_SIZE>, BOARD_SIZE> world = {
+  world_t world = {
       -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
   };
   for (size_t i = 0; i < 2; i++) {
@@ -36,25 +64,41 @@ int main() {
 
   while (!WindowShouldClose()) {
     if (IsKeyPressed(KEY_DOWN)) {
+      for (size_t i = 0; i < BOARD_SIZE - 1; i++) {
+        for (size_t j = 0; j < BOARD_SIZE; j++) {
+          if (world[i][j] == -1)
+            continue;
+          merge_swap_cell(world, i, j, 1, 0);
+        }
+      }
+      spawn_cell(world);
     } else if (IsKeyPressed(KEY_UP)) {
+      for (size_t i = BOARD_SIZE - 1; i > 0; i--) {
+        for (size_t j = 0; j < BOARD_SIZE; j++) {
+          if (world[i][j] == -1)
+            continue;
+          merge_swap_cell(world, i, j, -1, 0);
+        }
+      }
+      spawn_cell(world);
     } else if (IsKeyPressed(KEY_LEFT)) {
+      for (size_t i = 0; i < BOARD_SIZE; i++) {
+        for (size_t j = BOARD_SIZE - 1; j > 0; j--) {
+          if (world[i][j] == -1)
+            continue;
+          merge_swap_cell(world, i, j, 0, -1);
+        }
+      }
+      spawn_cell(world);
     } else if (IsKeyPressed(KEY_RIGHT)) {
       for (size_t i = 0; i < BOARD_SIZE; i++) {
         for (size_t j = 0; j < BOARD_SIZE - 1; j++) {
           if (world[i][j] == -1)
             continue;
-
-          if (world[i][j] != -1 && world[i][j + 1] == -1) {
-            world[i][j + 1] = world[i][j];
-            world[i][j] = -1;
-          }
-
-          if (world[i][j] == world[i][j + 1]) {
-            world[i][j] = -1;
-            world[i][j + 1]++;
-          }
+          merge_swap_cell(world, i, j, 0, 1);
         }
       }
+      spawn_cell(world);
     }
 
     BeginDrawing();
