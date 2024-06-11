@@ -34,8 +34,8 @@ void world_spawn_cell(world_t world) {
     for (size_t j = 0; j < BOARD_SIZE; j++) {
       if (world[i][j].exp == -1 && GetRandomValue(0, 1) == 1) {
         world[i][j].exp = 0;
-        world[i][j].old_x = i;
-        world[i][j].old_y = j;
+        world[i][j].old_x = j;
+        world[i][j].old_y = i;
         world[i][j].frames = 0.0f;
         break;
       }
@@ -130,8 +130,8 @@ int main() {
       }
     }
 
-    if (acc > 0.15f && valid_move) {
-      world_spawn_cell(world);
+    if (acc > 0.015f && valid_move) {
+      // world_spawn_cell(world);
       acc = 0.0f;
     }
 
